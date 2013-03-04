@@ -21,7 +21,7 @@ Tested on Mountain Lion 10.8 with Xcode 4.6.
 
   * Install openlase with brew
 
-        $ brew tap edy555/openlase
+        $ brew tap edy555/homebrew-openlase
         $ brew install openlase --HEAD
 
    OpenLASE commands are installed in /usr/local/bin. 
