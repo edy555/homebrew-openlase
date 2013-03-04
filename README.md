@@ -13,16 +13,23 @@ Tested on Mountain Lion 10.8 with Xcode 4.6.
 
         $ curl -fsSk https://raw.github.com/mxcl/homebrew/go | ruby
 
+  * Install recommended package(s) with brew
+
+        $ brew install cmake
+        $ brew install ffmpeg
+        $ brew install qt
+
   * Install openlase with brew
 
         $ brew install openlase --HEAD
 
+   OpenLASE commands are installed in /usr/local/bin. 
+
 # Run
 
-  OpenLASE commands are installed in /usr/local/bin. 
   Before run openlase command, launch JackPilot and start it,
   then start openlase command. Open routing window of JackPilot,
-  connect openlase output to sound card.
+  connect openlase to sound output.
 
   * openlase-simple
   * openlase-harp
