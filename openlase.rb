@@ -6,7 +6,7 @@ require 'formula'
 class Openlase < Formula
   homepage 'https://github.com/marcan/openlase/wiki'
 
-  head 'https://github.com/marcan/openlase.git'
+  head 'https://github.com/marcan/openlase/commit/49cd5b753066d23f47730853bfcc2b12f7adab82'
 
   depends_on 'cmake' => :build
   depends_on 'yasm' => :build
