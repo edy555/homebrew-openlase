@@ -102,7 +102,7 @@ index b9be0f4..b677f57 100644
  #add_subdirectory(27c3_slides)
  
 diff --git a/libol/CMakeLists.txt b/libol/CMakeLists.txt
-index da9ffd0..668f859 100644
+index da9ffd0..6fa519d 100644
 --- a/libol/CMakeLists.txt
 +++ b/libol/CMakeLists.txt
 @@ -15,6 +15,7 @@
@@ -121,12 +121,15 @@ index da9ffd0..668f859 100644
  
  set(TRACER_SOURCES "")
  if(BUILD_TRACER)
-@@ -36,6 +38,8 @@ endif()
+@@ -36,6 +38,11 @@ endif()
  add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
  target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
  set_target_properties(openlase PROPERTIES VERSION 0 SOVERSION 0)
 +install (TARGETS openlase RUNTIME DESTINATION bin LIBRARY DESTINATION
 +lib ARCHIVE DESTINATION lib)
++install (FILES ${CMAKE_SOURCE_DIR}/include/libol.h
++${CMAKE_SOURCE_DIR}/include/ilda.h ${CMAKE_SOURCE_DIR}/include/text.h
++${CMAKE_SOURCE_DIR}/include/trace.h DESTINATION include/openlase)
  
  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c
      DEPENDS ${CMAKE_SOURCE_DIR}/tools/genfont.py
