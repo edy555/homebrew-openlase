@@ -5,8 +5,8 @@ require 'formula'
 
 class Openlase < Formula
   homepage 'https://github.com/marcan/openlase/wiki'
-  url 'https://github.com/marcan/openlase.git', :revision => '49cd5b753066d23f47730853bfcc2b12f7adab82'
-  version "marcan-49cd5b7"
+  url 'https://github.com/edy555/openlase.git', :branch => 'ffmpeg_deprecated'
+  version "edy555-2d7a96b649"
   head 'https://github.com/marcan/openlase.git'
 
   depends_on 'cmake' => :build
