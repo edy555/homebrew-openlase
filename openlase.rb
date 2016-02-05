@@ -106,10 +106,11 @@ diff --git a/libol/CMakeLists.txt b/libol/CMakeLists.txt
 index da9ffd0..6fa519d 100644
 --- a/libol/CMakeLists.txt
 +++ b/libol/CMakeLists.txt
-@@ -15,6 +15,7 @@
+@@ -15,6 +15,8 @@
  # along with this program; if not, write to the Free Software
  # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  #
++include(CheckIncludeFiles)  
 +include(CheckFunctionExists)
  
  check_include_files(malloc.h HAVE_MALLOC_H)

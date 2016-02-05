@@ -3,11 +3,7 @@ homebrew-openlase
 
 # Installation
 
-Tested on Mountain Lion 10.8 with Xcode 4.6.
-
-  * Install Jack OSX
-
-    Download Jack OSX from http://jackosx.com/ and install it.
+Tested on Lion (10.8) and 10.11 (El Capitan).
 
   * Prepare homebrew
 
@@ -18,19 +14,19 @@ Tested on Mountain Lion 10.8 with Xcode 4.6.
         $ brew install cmake
         $ brew install ffmpeg
         $ brew install qt
-
+		$ brew install jack --build-from-source
+		
   * Install openlase with brew
 
-        $ brew tap edy555/homebrew-openlase
-        $ brew install openlase --HEAD
+        $ brew tap edy555/openlase
+        $ brew install openlase
 
    OpenLASE commands are installed in /usr/local/bin. 
 
 # Run
 
-  Before run openlase command, launch JackPilot and start it,
-  then start openlase command. Open routing window of JackPilot,
-  connect openlase to sound output.
+  Before run openlase command, launch jack_server_control on terminal.
+  And then, start one of following openlase commands. Finally connect ports.
 
   * openlase-simple
   * openlase-harp
@@ -38,6 +34,17 @@ Tested on Mountain Lion 10.8 with Xcode 4.6.
   * openlase-circlescope
   * openlase-playvid
   * openlase-qplayvid
+
+# Example
+
+        $ jack_server_control
+        $ openlase-simulator 
+        $ openlase-simple
+		$ jack_connect libol:out_x simulator:in_x
+		$ jack_connect libol:out_y simulator:in_y
+        $ jack_connect libol:out_g simulator:in_g
+	    $ jack_connect libol:out_r simulator:in_r
+        $ jack_connect libol:out_b simulator:in_b
 
 # Credit
 
