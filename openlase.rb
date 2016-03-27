@@ -103,7 +103,7 @@ index b9be0f4..b677f57 100644
  #add_subdirectory(27c3_slides)
  
 diff --git a/libol/CMakeLists.txt b/libol/CMakeLists.txt
-index da9ffd0..6fa519d 100644
+index da9ffd0..eb8a37e 100644
 --- a/libol/CMakeLists.txt
 +++ b/libol/CMakeLists.txt
 @@ -15,6 +15,8 @@
@@ -115,7 +115,7 @@ index da9ffd0..6fa519d 100644
  
  check_include_files(malloc.h HAVE_MALLOC_H)
  check_function_exists(memalign HAVE_MEMALIGN)
-@@ -23,6 +24,7 @@ check_function_exists(_aligned_malloc HAVE_ALIGNED_MALLOC)
+@@ -23,6 +25,7 @@ check_function_exists(_aligned_malloc HAVE_ALIGNED_MALLOC)
  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
  
  include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
@@ -123,7 +123,7 @@ index da9ffd0..6fa519d 100644
  
  set(TRACER_SOURCES "")
  if(BUILD_TRACER)
-@@ -36,6 +38,11 @@ endif()
+@@ -36,6 +39,11 @@ endif()
  add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
  target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
  set_target_properties(openlase PROPERTIES VERSION 0 SOVERSION 0)
@@ -233,6 +233,37 @@ index b8d1746..288d856 100644
  #if BYTE_ORDER == LITTLE_ENDIAN
  static inline uint16_t swapshort(uint16_t v) {
  	return (v >> 8) | (v << 8);
+diff --git a/tools/playvid.c b/tools/playvid.c
+index 0a08659..f7c8b3a 100644
+--- a/tools/playvid.c
++++ b/tools/playvid.c
+@@ -133,7 +133,7 @@ void moreaudio(float *lb, float *rb, int samples)
+ 			} while(packet.stream_index!=audioStream);
+ 
+ 			pAudioFrame->nb_samples = AUDIO_BUF;
+-			pACodecCtx->get_buffer(pACodecCtx, pAudioFrame);
++			pACodecCtx->get_buffer2(pACodecCtx, pAudioFrame, 0);
+ 			avcodec_decode_audio4(pACodecCtx, pAudioFrame, &decoded_frame, &packet);
+ 			if(!decoded_frame)
+ 			{
+@@ -186,7 +186,7 @@ int	 av_vid_init(char *file)
+ 	if (avcodec_open2(pCodecCtx, pCodec, NULL)<0)
+ 		return -1;
+ 
+-	pFrame=avcodec_alloc_frame();
++	pFrame=av_frame_alloc();
+ 
+ 	return 0;
+ }
+@@ -214,7 +214,7 @@ int av_aud_init(char *file)
+ 		return -1;
+ 
+ 	pACodecCtx=pAFormatCtx->streams[audioStream]->codec;
+-	pAudioFrame = avcodec_alloc_frame();
++	pAudioFrame = av_frame_alloc();
+ 
+ 
+ 	pACodec=avcodec_find_decoder(pACodecCtx->codec_id);
 diff --git a/tools/qplayvid/CMakeLists.txt b/tools/qplayvid/CMakeLists.txt
 index b68e5de..dabb2db 100644
 --- a/tools/qplayvid/CMakeLists.txt
@@ -249,6 +280,55 @@ index b68e5de..dabb2db 100644
  else()
    message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg or tracer missing)")
  endif()
+diff --git a/tools/qplayvid/qplayvid.c b/tools/qplayvid/qplayvid.c
+index 99fda77..4f6d023 100644
+--- a/tools/qplayvid/qplayvid.c
++++ b/tools/qplayvid/qplayvid.c
+@@ -135,7 +135,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
+ {
+ 	int decoded, got_frame;
+ 	
+-	ctx->a_frame = avcodec_alloc_frame();
++	ctx->a_frame = av_frame_alloc();
+ 	ctx->a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+ 	ctx->a_codec_ctx->get_buffer2(ctx->a_codec_ctx, ctx->a_frame, 0);
+ 	decoded = avcodec_decode_audio4(ctx->a_codec_ctx, ctx->a_frame, &got_frame, packet);
+@@ -193,7 +193,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
+ 	pthread_mutex_unlock(&ctx->a_buf_mutex);
+ 
+ fail:
+-	avcodec_free_frame(&ctx->a_frame);
++	av_frame_free(&ctx->a_frame);
+ 	ctx->a_frame = NULL;
+ 	return decoded;
+ }
+@@ -208,7 +208,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
+ 
+ 	ctx->v_pkt_pts = packet->pts;
+ 
+-	ctx->v_frame = avcodec_alloc_frame();
++	ctx->v_frame = av_frame_alloc();
+ 	decoded = avcodec_decode_video2(ctx->v_codec_ctx, ctx->v_frame, &got_frame, packet);
+ 	if (decoded < 0) {
+ 		fprintf(stderr, "Error while decoding video frame\n");
+@@ -280,7 +280,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
+ 
+ 	if (!ctx->v_sws_ctx) {
+ 		ctx->v_sws_ctx = sws_getContext(ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
+-										ctx->width, ctx->height, PIX_FMT_GRAY8, SWS_BICUBIC,
++										ctx->width, ctx->height, AV_PIX_FMT_GRAY8, SWS_BICUBIC,
+ 										NULL, NULL, NULL);
+ 	}
+ 
+@@ -301,7 +301,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
+ 	pthread_mutex_unlock(&ctx->v_buf_mutex);
+ 
+ fail:
+-	avcodec_free_frame(&ctx->v_frame);
++	av_frame_free(&ctx->v_frame);
+ 	ctx->v_frame = NULL;
+ 	return decoded;
+ }
 diff --git a/tools/simulator.c b/tools/simulator.c
 index 66ae6e3..1b80da1 100644
 --- a/tools/simulator.c
