@@ -1,27 +1,23 @@
 require 'formula'
 
-# Documentation: https://github.com/mxcl/homebrew/wiki/Formula-Cookbook
-# PLEASE REMOVE ALL GENERATED COMMENTS BEFORE SUBMITTING YOUR PULL REQUEST!
-
 class Openlase < Formula
   homepage 'https://github.com/marcan/openlase/wiki'
-  url 'https://github.com/edy555/openlase.git', :branch => 'ffmpeg_deprecated'
-  version "edy555-2d7a96b649"
+  url 'https://github.com/marcan/openlase.git'
+  version 'marcan-221a551'
   head 'https://github.com/marcan/openlase.git'
 
   depends_on 'cmake' => :build
-  depends_on 'yasm' => :build
-  #depends_on 'jack'  # Jack OSX http://www.jackosx.com/ is recommended
-  depends_on 'ffmpeg' => :recommended
+  depends_on 'jack'
+  depends_on 'yasm' => :optional
+  depends_on 'ffmpeg' => :optional
   depends_on 'qt' => :optional
+  depends_on 'cython' => :optional
+  depends_on 'python' => :optional
 
-  def patches
-    DATA
-  end
+  patch :DATA
 
   def install
     args = std_cmake_args
-    args << '-DPYTHON_LIBRARY=/usr/local/Frameworks/Python.framework/Python'
     system "cmake", ".", *args
     system "make"
     system "make install"
@@ -30,7 +26,7 @@ end
 
 __END__
 diff --git a/Modules/CMakeASM_YASMInformation.cmake b/Modules/CMakeASM_YASMInformation.cmake
-index 50b2848..3d7b330 100644
+index 923a915..6729e77 100644
 --- a/Modules/CMakeASM_YASMInformation.cmake
 +++ b/Modules/CMakeASM_YASMInformation.cmake
 @@ -1,7 +1,13 @@
@@ -40,144 +36,121 @@ index 50b2848..3d7b330 100644
 -if(UNIX)
 +if(APPLE)
 +  if(BITS EQUAL 64)
-+    set(CMAKE_ASM_YASM_COMPILER_ARG1 "-f macho64 -DARCH_X86_64 -DPREFIX")
++    set(CMAKE_ASM_YASM_COMPILER_ARG1 "-f macho64 -DARCH_X86_64=1 -Dprivate_prefix=_ol -DPIC=1")
 +  else()
-+    set(CMAKE_ASM_YASM_COMPILER_ARG1 "-f macho32 -DPREFIX")
++    set(CMAKE_ASM_YASM_COMPILER_ARG1 "-f macho32 -DARCH_X86_64=0 -Dprivate_prefix=_ol")
 +  endif()
 +elseif(UNIX)
    if(BITS EQUAL 64)
-     set(CMAKE_ASM_YASM_COMPILER_ARG1 "-f elf64 -DARCH_X86_64")
+     set(CMAKE_ASM_YASM_COMPILER_ARG1 "-f elf64 -DARCH_X86_64=1 -Dprivate_prefix=ol -DPIC=1")
    else()
 diff --git a/examples/CMakeLists.txt b/examples/CMakeLists.txt
-index b9be0f4..b677f57 100644
+index 5e495ce..69d88f0 100644
 --- a/examples/CMakeLists.txt
 +++ b/examples/CMakeLists.txt
-@@ -18,28 +18,37 @@
- 
+@@ -19,27 +19,35 @@
  include_directories (${CMAKE_SOURCE_DIR}/include)
  link_directories (${CMAKE_BINARY_DIR}/libol)
-+include_directories (${JACK_INCLUDE_DIR})
  
 -add_executable(circlescope circlescope.c)
 -target_link_libraries(circlescope ${JACK_LIBRARIES} m)
+-
+-add_executable(scope scope.c)
+-target_link_libraries(scope ${JACK_LIBRARIES} m)
+-
+-add_executable(simple simple.c)
+-target_link_libraries(simple ol)
+-
+-add_executable(pong pong.c)
+-target_link_libraries(pong ol)
 +add_executable(openlase-circlescope circlescope.c)
 +target_link_libraries(openlase-circlescope ${JACK_LIBRARIES} m)
 +install (TARGETS openlase-circlescope RUNTIME DESTINATION bin)
- 
--add_executable(scope scope.c)
--target_link_libraries(scope ${JACK_LIBRARIES} m)
++
 +add_executable(openlase-scope scope.c)
 +target_link_libraries(openlase-scope ${JACK_LIBRARIES} m)
 +install(TARGETS openlase-scope RUNTIME DESTINATION bin)
- 
--add_executable(simple simple.c)
--target_link_libraries(simple openlase)
++
 +add_executable(openlase-simple simple.c)
-+target_link_libraries(openlase-simple openlase)
++target_link_libraries(openlase-simple ol)
 +install (TARGETS openlase-simple RUNTIME DESTINATION bin)
- 
--add_executable(pong pong.c)
--target_link_libraries(pong openlase)
++
 +if(NOT APPLE)
 +add_executable(openlase-pong pong.c)
-+target_link_libraries(openlase-pong openlase)
++target_link_libraries(openlase-pong ol)
 +install (TARGETS openlase-pong RUNTIME DESTINATION bin)
 +endif()
  
  if(ALSA_FOUND)
 -  add_executable(midiview midiview.c)
--  target_link_libraries(midiview openlase ${ALSA_LIBRARIES})
+-  target_link_libraries(midiview ol ${ALSA_LIBRARIES})
 +  add_executable(openlase-midiview midiview.c)
-+  target_link_libraries(openlase-midiview openlase ${ALSA_LIBRARIES})
++  target_link_libraries(openlase-midiview ol ${ALSA_LIBRARIES})
 +  install (TARGETS openlase-midiview RUNTIME DESTINATION bin)
  else()
    message(STATUS "Will NOT build midiview (ALSA missing)")
  endif()
  
 -add_executable(harp harp.c)
--target_link_libraries(harp openlase)
+-target_link_libraries(harp ol)
 +add_executable(openlase-harp harp.c)
-+target_link_libraries(openlase-harp openlase)
++target_link_libraries(openlase-harp ol)
 +install (TARGETS openlase-harp RUNTIME DESTINATION bin)
  
  #add_subdirectory(27c3_slides)
  
-diff --git a/libol/CMakeLists.txt b/libol/CMakeLists.txt
-index da9ffd0..eb8a37e 100644
---- a/libol/CMakeLists.txt
-+++ b/libol/CMakeLists.txt
-@@ -15,6 +15,8 @@
- # along with this program; if not, write to the Free Software
- # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- #
-+include(CheckIncludeFiles)  
-+include(CheckFunctionExists)
+diff --git a/libol/imgproc_sse2.asm b/libol/imgproc_sse2.asm
+index 4c86a3c..1df4979 100644
+--- a/libol/imgproc_sse2.asm
++++ b/libol/imgproc_sse2.asm
+@@ -50,6 +50,12 @@ section .note.GNU-stack noalloc noexec nowrite progbits
+ %ifidn __OUTPUT_FORMAT__,elf64
+ section .note.GNU-stack noalloc noexec nowrite progbits
+ %endif
++%ifidn __OUTPUT_FORMAT__,macho64
++section .note.GNU-stack noalloc
++%endif
++%ifidn __OUTPUT_FORMAT__,macho32
++section .note.GNU-stack noalloc
++%endif
  
- check_include_files(malloc.h HAVE_MALLOC_H)
- check_function_exists(memalign HAVE_MEMALIGN)
-@@ -23,6 +25,7 @@ check_function_exists(_aligned_malloc HAVE_ALIGNED_MALLOC)
- configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
- 
- include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
-+include_directories (${JACK_INCLUDE_DIR})
- 
- set(TRACER_SOURCES "")
- if(BUILD_TRACER)
-@@ -36,6 +39,11 @@ endif()
- add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
- target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
- set_target_properties(openlase PROPERTIES VERSION 0 SOVERSION 0)
-+install (TARGETS openlase RUNTIME DESTINATION bin LIBRARY DESTINATION
-+lib ARCHIVE DESTINATION lib)
-+install (FILES ${CMAKE_SOURCE_DIR}/include/libol.h
-+${CMAKE_SOURCE_DIR}/include/ilda.h ${CMAKE_SOURCE_DIR}/include/text.h
-+${CMAKE_SOURCE_DIR}/include/trace.h DESTINATION include/openlase)
- 
- add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c
-     DEPENDS ${CMAKE_SOURCE_DIR}/tools/genfont.py
+ SECTION .text
+ INIT_XMM
 diff --git a/libol/trace.c b/libol/trace.c
-index 8439830..829d8d6 100644
+index 364abdc..0a4aab8 100644
 --- a/libol/trace.c
 +++ b/libol/trace.c
-@@ -22,7 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  #include <string.h>
  #include <stdio.h>
  #include <stdlib.h>
-+#ifdef HAVE_MALLOC_H
- #include <malloc.h>
-+#endif
+-#include <malloc.h>
++#include <malloc/malloc.h>
  
  #include "trace.h"
  #include "align.h"
 diff --git a/python/CMakeLists.txt b/python/CMakeLists.txt
-index 5bd8815..cd8d929 100644
+index 8003451..12513ff 100644
 --- a/python/CMakeLists.txt
 +++ b/python/CMakeLists.txt
-@@ -1,4 +1,4 @@
--find_package(PythonLibs)
-+find_package(PythonLibs) 
- find_program(CYTHON_EXECUTABLE cython)
- 
- if(CYTHON_EXECUTABLE MATCHES "NOTFOUND" OR NOT PYTHONLIBS_FOUND)
-@@ -21,5 +21,8 @@ else()
+@@ -22,5 +22,9 @@ else()
      PREFIX ""
      OUTPUT_NAME "pylase"
      LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
--  target_link_libraries(pylase openlase)
-+  target_link_libraries(pylase ${PYTHON_LIBRARIES} openlase)
+-  target_link_libraries(pylase ol)
++  target_link_libraries(pylase ${PYTHON_LIBRARIES} ol)
 +
 +  execute_process ( COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(plat_specific=1)" OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
-+  install(TARGETS pylase DESTINATION ${PYTHON_SITE_PACKAGES} ) 
++  #install(TARGETS pylase DESTINATION ${PYTHON_SITE_PACKAGES} ) 
++
  endif()
 diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
-index 51f20c6..1c16ea0 100644
+index 7f83ede..4c85a1d 100644
 --- a/tools/CMakeLists.txt
 +++ b/tools/CMakeLists.txt
-@@ -18,28 +18,34 @@
- 
+@@ -19,27 +19,32 @@
  include_directories (${CMAKE_SOURCE_DIR}/include)
  link_directories (${CMAKE_BINARY_DIR}/libol)
-+include_directories (${JACK_INCLUDE_DIR})
  
 -add_executable(playilda playilda.c)
 -target_link_libraries(playilda ${JACK_LIBRARIES})
@@ -197,16 +170,21 @@ index 51f20c6..1c16ea0 100644
 +target_link_libraries(openlase-cal ${JACK_LIBRARIES} m)
 +install (TARGETS openlase-cal RUNTIME DESTINATION bin)
  
- if(FFMPEG_FOUND AND BUILD_TRACER)
-   include_directories(${FFMPEG_INCLUDE_DIR})
--  add_executable(playvid playvid.c)
--  target_link_libraries(playvid openlase ${FFMPEG_LIBRARIES} avresample)
-+  add_executable(openlase-playvid playvid.c)
-+  target_link_libraries(openlase-playvid openlase ${FFMPEG_LIBRARIES} avresample)
-+  install (TARGETS openlase-playvid RUNTIME DESTINATION bin)
- else()
-   message(STATUS "Will NOT build playvid (FFmpeg or tracer missing)")
- endif()
+-#if(FFMPEG_FOUND AND BUILD_TRACER)
+-# include_directories(${FFMPEG_INCLUDE_DIR})
+-# add_executable(playvid playvid.c)
+-# target_link_libraries(playvid openlase ${FFMPEG_LIBRARIES} avresample)
+-#else()
+-#  message(STATUS "Will NOT build playvid (FFmpeg or tracer missing)")
+-#endif()
++if(FFMPEG_FOUND AND BUILD_TRACER)
++ include_directories(${FFMPEG_INCLUDE_DIR})
++ add_executable(openlase-playvid playvid.c)
++ target_link_libraries(openlase-playvid ol ${FFMPEG_LIBRARIES} avresample)
++ install (TARGETS openlase-playvid RUNTIME DESTINATION bin)
++else()
++  message(STATUS "Will NOT build playvid (FFmpeg or tracer missing)")
++endif()
  
  if(OPENGL_FOUND AND GLUT_FOUND)
 -  add_executable(simulator simulator.c)
@@ -219,25 +197,32 @@ index 51f20c6..1c16ea0 100644
    message(STATUS "Will NOT build simulator (OpenGL or GLUT missing)")
  endif()
 diff --git a/tools/playilda.c b/tools/playilda.c
-index b8d1746..288d856 100644
+index c942701..6458687 100644
 --- a/tools/playilda.c
 +++ b/tools/playilda.c
-@@ -44,6 +44,10 @@ the laser image updates.
- #include <sys/param.h>
- #include <sys/stat.h>
+@@ -522,7 +522,7 @@ int main (int argc, char *argv[])
  
-+#if defined(__APPLE__)
-+#define st_mtim        st_mtimespec
-+#endif
-+
- #if BYTE_ORDER == LITTLE_ENDIAN
- static inline uint16_t swapshort(uint16_t v) {
- 	return (v >> 8) | (v << 8);
+ 	while (1) {
+ 		stat(fname, &st2);
+-		if(st1.st_mtim.tv_sec != st2.st_mtim.tv_sec || st1.st_mtim.tv_nsec != st2.st_mtim.tv_nsec) {
++		if(st1.st_mtimespec.tv_sec != st2.st_mtimespec.tv_sec || st1.st_mtimespec.tv_nsec != st2.st_mtimespec.tv_nsec) {
+ 			frameno = (frameno+1)%FRAMEBUFS;
+ 			printf("Loading new frame to slot %d\n", frameno);
+ 			if(frames[frameno].points)
 diff --git a/tools/playvid.c b/tools/playvid.c
-index 0a08659..f7c8b3a 100644
+index 1b20ba9..a4f4fcb 100644
 --- a/tools/playvid.c
 +++ b/tools/playvid.c
-@@ -133,7 +133,7 @@ void moreaudio(float *lb, float *rb, int samples)
+@@ -61,7 +61,7 @@ is a hack.
+ 
+ #define FRAMES_BUF 8
+ 
+-#define AUDIO_BUF AVCODEC_MAX_AUDIO_FRAME_SIZE
++#define AUDIO_BUF 192000
+ 
+ AVFormatContext        *pFormatCtx = NULL;
+ AVFormatContext        *pAFormatCtx = NULL;
+@@ -130,7 +130,7 @@ void moreaudio(float *lb, float *rb, int samples)
  			} while(packet.stream_index!=audioStream);
  
  			pAudioFrame->nb_samples = AUDIO_BUF;
@@ -246,89 +231,6 @@ index 0a08659..f7c8b3a 100644
  			avcodec_decode_audio4(pACodecCtx, pAudioFrame, &decoded_frame, &packet);
  			if(!decoded_frame)
  			{
-@@ -186,7 +186,7 @@ int	 av_vid_init(char *file)
- 	if (avcodec_open2(pCodecCtx, pCodec, NULL)<0)
- 		return -1;
- 
--	pFrame=avcodec_alloc_frame();
-+	pFrame=av_frame_alloc();
- 
- 	return 0;
- }
-@@ -214,7 +214,7 @@ int av_aud_init(char *file)
- 		return -1;
- 
- 	pACodecCtx=pAFormatCtx->streams[audioStream]->codec;
--	pAudioFrame = avcodec_alloc_frame();
-+	pAudioFrame = av_frame_alloc();
- 
- 
- 	pACodec=avcodec_find_decoder(pACodecCtx->codec_id);
-diff --git a/tools/qplayvid/CMakeLists.txt b/tools/qplayvid/CMakeLists.txt
-index b68e5de..dabb2db 100644
---- a/tools/qplayvid/CMakeLists.txt
-+++ b/tools/qplayvid/CMakeLists.txt
-@@ -23,8 +23,9 @@ if(QT4_FOUND AND FFMPEG_FOUND AND SWSCALE_FOUND AND BUILD_TRACER)
- 
-   include_directories(${CMAKE_CURRENT_BINARY_DIR})
- 
--  add_executable(qplayvid qplayvid.c qplayvid_gui.cpp ${qplayvid_MOCS})
--  target_link_libraries(qplayvid openlase ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} ${QT_LIBRARIES} avresample)
-+  add_executable(openlase-qplayvid qplayvid.c qplayvid_gui.cpp ${qplayvid_MOCS})
-+  target_link_libraries(openlase-qplayvid openlase ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} ${QT_LIBRARIES} avresample)
-+  install(TARGETS openlase-qplayvid RUNTIME DESTINATION bin)
- else()
-   message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg or tracer missing)")
- endif()
-diff --git a/tools/qplayvid/qplayvid.c b/tools/qplayvid/qplayvid.c
-index 99fda77..4f6d023 100644
---- a/tools/qplayvid/qplayvid.c
-+++ b/tools/qplayvid/qplayvid.c
-@@ -135,7 +135,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
- {
- 	int decoded, got_frame;
- 	
--	ctx->a_frame = avcodec_alloc_frame();
-+	ctx->a_frame = av_frame_alloc();
- 	ctx->a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
- 	ctx->a_codec_ctx->get_buffer2(ctx->a_codec_ctx, ctx->a_frame, 0);
- 	decoded = avcodec_decode_audio4(ctx->a_codec_ctx, ctx->a_frame, &got_frame, packet);
-@@ -193,7 +193,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
- 	pthread_mutex_unlock(&ctx->a_buf_mutex);
- 
- fail:
--	avcodec_free_frame(&ctx->a_frame);
-+	av_frame_free(&ctx->a_frame);
- 	ctx->a_frame = NULL;
- 	return decoded;
- }
-@@ -208,7 +208,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
- 
- 	ctx->v_pkt_pts = packet->pts;
- 
--	ctx->v_frame = avcodec_alloc_frame();
-+	ctx->v_frame = av_frame_alloc();
- 	decoded = avcodec_decode_video2(ctx->v_codec_ctx, ctx->v_frame, &got_frame, packet);
- 	if (decoded < 0) {
- 		fprintf(stderr, "Error while decoding video frame\n");
-@@ -280,7 +280,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
- 
- 	if (!ctx->v_sws_ctx) {
- 		ctx->v_sws_ctx = sws_getContext(ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
--										ctx->width, ctx->height, PIX_FMT_GRAY8, SWS_BICUBIC,
-+										ctx->width, ctx->height, AV_PIX_FMT_GRAY8, SWS_BICUBIC,
- 										NULL, NULL, NULL);
- 	}
- 
-@@ -301,7 +301,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
- 	pthread_mutex_unlock(&ctx->v_buf_mutex);
- 
- fail:
--	avcodec_free_frame(&ctx->v_frame);
-+	av_frame_free(&ctx->v_frame);
- 	ctx->v_frame = NULL;
- 	return decoded;
- }
 diff --git a/tools/simulator.c b/tools/simulator.c
 index 66ae6e3..1b80da1 100644
 --- a/tools/simulator.c

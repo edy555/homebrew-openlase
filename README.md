@@ -3,7 +3,7 @@ homebrew-openlase
 
 # Installation
 
-Tested on Lion (10.8) and 10.11 (El Capitan).
+Tested on Sierra (10.13)
 
   * Prepare homebrew
 
@@ -15,18 +15,20 @@ Tested on Lion (10.8) and 10.11 (El Capitan).
         $ brew install ffmpeg
         $ brew install qt
 		$ brew install jack --build-from-source
+        $ brew install qjackctl
 		
   * Install openlase with brew
 
         $ brew tap edy555/openlase
         $ brew install openlase
 
-   OpenLASE commands are installed in /usr/local/bin. 
+   OpenLASE commands are installed in /usr/local/bin
 
 # Run
 
-  Before run openlase command, launch jack_server_control on terminal.
-  And then, start one of following openlase commands. Finally connect ports.
+  Before run openlase command, launch qjackctl on terminal.
+  Start one of following openlase commands. And then, connect ports
+  with qjackctl.
 
   * openlase-simple
   * openlase-harp
@@ -37,14 +39,9 @@ Tested on Lion (10.8) and 10.11 (El Capitan).
 
 # Example
 
-        $ jack_server_control
         $ openlase-simulator 
         $ openlase-simple
-		$ jack_connect libol:out_x simulator:in_x
-		$ jack_connect libol:out_y simulator:in_y
-        $ jack_connect libol:out_g simulator:in_g
-	    $ jack_connect libol:out_r simulator:in_r
-        $ jack_connect libol:out_b simulator:in_b
+        $ qjackctl
 
 # Credit
 
